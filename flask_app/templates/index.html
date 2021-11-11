@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+    {% block header %}
+        <h1>INDEX</h1>
+    {% endblock header %}
+    {% block content %}
+    {% if name %}
+        <h2> Welcome, {{name}}! </h2>
+    {% else %}
+        <h2> Welcome! </h2>
+    {% endif %}
+        <p>Here we can have some images or screenshots about the game</p>
+        <p>As well as a description of the game, etc.</p>
+    {% endblock content %}
