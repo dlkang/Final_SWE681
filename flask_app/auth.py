@@ -1,6 +1,7 @@
-from flask import Blueprint, session, redirect, render_template, request, url_for
+from flask import Blueprint, session, redirect, render_template, request, url_for, flash
 from flask_app import db
 from flask_app.models import User
+from flask_login import current_user
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -18,9 +19,10 @@ def register():
         new_user = User(n_name, n_lname, n_email, n_username, n_password)
         db.session.add(new_user)
         db.session.commit()
-        return render_template('index.html', name=n_name) #Use as confirmation page for now
+        flash("Registration successful, you are now able to log in", "success")
+        return redirect(url_for('auth.login'))
     else:
-        return render_template("register.html")
+        return render_template("register.html", title='Registration')
 
 
 @bp.route('/login', methods=['POST', 'GET'])
@@ -31,8 +33,8 @@ def login():
         n_user = User.query.filter_by(username=request.form['username']).first()
         if n_user.password == request.form['password']:
             session['username'] = request.form['username']
-            return render_template('index.html', username=session['username'])
-    return render_template('login.html')
+            return render_template('index.html', username=session['username'], title='Home')
+    return render_template('login.html', title='Login')
 
 
 @bp.route('/logout')

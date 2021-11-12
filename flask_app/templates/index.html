@@ -1,10 +1,7 @@
 {% extends "base.html" %}
-    {% block header %}
-        <h1>INDEX</h1>
-    {% endblock header %}
     {% block content %}
-    {% if name %}
-        <h2> Welcome, {{name}}! </h2>
+    {% if username %}
+        <h2> Welcome, {{username}}! </h2>
     {% else %}
         <h2> Welcome! </h2>
     {% endif %}

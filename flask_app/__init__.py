@@ -20,7 +20,7 @@ def create_app(config_class = Config):
     @app.route("/home")
     def index():
         if 'username' in session:
-            return render_template("index.html", username=session['username'])
-        return render_template("index.html")
+            return render_template("index.html", username=session['username'], title='Home')
+        return render_template("index.html", title='Home')
 
     return app
