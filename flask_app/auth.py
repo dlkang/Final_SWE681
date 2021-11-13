@@ -1,43 +1,47 @@
-from flask import Blueprint, session, redirect, render_template, request, url_for, flash
+from flask import Blueprint, redirect, render_template, request, url_for, flash
 from flask_app import db
+from flask_app.forms import RegistrationForm, LoginForm
 from flask_app.models import User
-from flask_login import current_user
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug import security
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
-    if request.method == 'POST':
-        # NEED TO CHECK FOR PARAMETERS NOT NULL!!!
-        # AND MORE SECURITY CHECKS!!!
-        n_name = request.form['name']
-        n_lname = request.form['lname']
-        n_email = request.form['email']
-        n_username = request.form['username']
-        n_password = request.form['password']
-        new_user = User(n_name, n_lname, n_email, n_username, n_password)
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    print("Im here!!!")
+    if form.validate_on_submit():
+        hashed_pwd = security.generate_password_hash(form.password.data)
+        print(hashed_pwd)
+        new_user = User(username=form.username.data, password=hashed_pwd, email=form.email.data)
         db.session.add(new_user)
         db.session.commit()
         flash("Registration successful, you are now able to log in", "success")
         return redirect(url_for('auth.login'))
     else:
-        return render_template("register.html", title='Registration')
+        print("FALLO!!")
+        return render_template("register.html", title='Registration', form=form)
 
 
 @bp.route('/login', methods=['POST', 'GET'])
 def login():
-    if request.method == 'POST':
-    #NEED TO CHECK FOR PARAMETERS NOT NULL!!!
-    #AND MORE SECURITY CHECKS!!!
-        n_user = User.query.filter_by(username=request.form['username']).first()
-        if n_user.password == request.form['password']:
-            session['username'] = request.form['username']
-            return render_template('index.html', username=session['username'], title='Home')
-    return render_template('login.html', title='Login')
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    form = LoginForm()
+    user = User.query.filter_by(username=form.username.data).first()
+    if user and security.check_password_hash(user.password, form.password.data):
+        login_user(user, remember=form.remember.data)
+        next_page = request.args.get('next')
+        # if not is_safe_url(next)  -> need to create function to check safe links or just hardcode it in the system
+        return redirect(next_page) if next_page else redirect(url_for('index'))
+    return render_template('login.html', title='Login', form=form)
 
 
 @bp.route('/logout')
 def logout():
-    session.pop('username', None)
+    logout_user()
     return redirect(url_for('index'))
