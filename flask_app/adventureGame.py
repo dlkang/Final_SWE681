@@ -31,12 +31,18 @@ def validate_move():
 
     if int(data['attack']) >= 0 and int(data['attack']) <= 100:
         output_json['attack'] = 'VALID'
+    else:
+        output_json['attack'] = 'INVALID'
 
     if int(data['posX']) >= 0 and int(data['posX']) <= 10:
         output_json['posX'] = 'VALID'
+    else:
+        output_json['posX'] = 'INVALID'
 
     if int(data['posY']) >= 0 and int(data['posY']) <= 10:
         output_json['posY'] = 'VALID'
+    else:
+        output_json['posY'] = 'INVALID'
     
     print("Data: ")
     print(data)
