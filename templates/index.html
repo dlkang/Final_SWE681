@@ -1,9 +1,0 @@
-{% extends "base.html" %}
-    {% block content %}
-    {% if current_user.is_authenticated %}
-        <h2> Welcome, {{current_user.username}}! </h2>
-    {% else %}
-        <h2> Welcome! </h2>
-    {% endif %}
-
-    {% endblock content %}
