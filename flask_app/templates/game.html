@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+    {% block content %}
+        <div id="grid"></div>
+        <script type="text/javascript">
+            var graphData = {{ data.grid | safe}}
+            console.log(graphData)
+        </script>
+        <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
+    {% endblock content %}
