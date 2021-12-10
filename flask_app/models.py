@@ -3,22 +3,22 @@ from flask_login import UserMixin
 
 
 @log_man.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_user(account_id):
+    return Account.query.get(int(account_id))
 
 
 play = db.Table('play',
                 db.Column('id', db.Integer, primary_key=True),
-                db.Column('user_id', db.Integer, db.ForeignKey('user.id'), unique=False),
+                db.Column('account_id', db.Integer, db.ForeignKey('account.id'), unique=False),
                 db.Column('game_id', db.Integer, db.ForeignKey('game.id'), unique=False))
 
 
-class User(db.Model, UserMixin):
+class Account(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(60), nullable=False)
+    password = db.Column(db.String(1000), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    queue_pos = db.Column(db.Integer, nullable=True)
+    queue_pos = db.Column(db.Integer, nullable=False, default=0)
 
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,7 +42,7 @@ class Game(db.Model):
     def_loc_x = db.Column(db.Integer, nullable=False)
     def_loc_y = db.Column(db.Integer, nullable=False)
     map = db.Column(db.Text, nullable=False)
-    players = db.relationship('User', secondary=play, backref=db.backref('games', lazy=True), lazy='subquery')
+    players = db.relationship('Account', secondary=play, backref=db.backref('games', lazy=True), lazy='subquery')
 
 
 class Hero(db.Model):

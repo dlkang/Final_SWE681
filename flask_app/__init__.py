@@ -5,13 +5,6 @@ from flask_app.config import Config
 
 import sqlalchemy
 
-engine = sqlalchemy.create_engine('postgresql://postgres:a@localhost/mydb')
-#engine.execute("CREATE SCHEMA IF NOT EXISTS final;")
-engine.execute(sqlalchemy.schema.CreateSchema('final'))
-engine.execute("SET search_path TO final;")
-engine.execute("CREATE TABLE IF NOT EXISTS temporary(id int, pass varchar(80));")
-
-
 db = SQLAlchemy()
 log_man = LoginManager()
 log_man.login_view = 'login'

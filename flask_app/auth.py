@@ -1,7 +1,7 @@
 from flask import Blueprint, redirect, render_template, request, url_for, flash
 from flask_app import db
 from flask_app.forms import RegistrationForm, LoginForm
-from flask_app.models import User
+from flask_app.models import Account 
 from flask_login import current_user, login_user, logout_user, login_required
 from werkzeug import security
 
@@ -16,7 +16,7 @@ def register():
     if form.validate_on_submit():
         hashed_pwd = security.generate_password_hash(form.password.data)
         print(hashed_pwd)
-        new_user = User(username=form.username.data, password=hashed_pwd, email=form.email.data, queue_pos=None)
+        new_user = Account(username=form.username.data, password=hashed_pwd, email=form.email.data, queue_pos=None)
         db.session.add(new_user)
         db.session.commit()
         flash("Registration successful, you are now able to log in", "success")
@@ -30,12 +30,12 @@ def register():
 def login():
     print('logging in')
     if current_user.is_authenticated:
-        print('Authenticated User')
+        print('Authenticated Account')
         return redirect(url_for("index"))
     form = LoginForm()
-    user = User.query.filter_by(username=form.username.data).first()
-    if user and security.check_password_hash(user.password, form.password.data):
-        login_user(user, remember=form.remember.data)
+    account = Account.query.filter_by(username=form.username.data).first()
+    if account and security.check_password_hash(account.password, form.password.data):
+        login_user(account, remember=form.remember.data)
         next_page = request.args.get('next')
         # if not is_safe_url(next)  -> need to create function to check safe links or just hardcode it in the system
         return redirect(next_page) if next_page else redirect(url_for('index'))
