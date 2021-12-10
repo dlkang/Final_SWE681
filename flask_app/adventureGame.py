@@ -1,18 +1,18 @@
 from flask import Blueprint, redirect, render_template, request, url_for, flash, jsonify
-from flask_app import db
-from flask_app.forms import RegistrationForm, LoginForm
-from flask_app.models import User
-from flask_login import current_user, login_user, logout_user, login_required
+from flask_app.game import grid_map
+import json
 from werkzeug import security
-
-import logging
 
 bp = Blueprint('game', __name__, url_prefix='/game')
 
-@bp.route('/play', methods=['GET'])
+
+@bp.route('/start', methods=['GET'])
 def start_game():
-    if current_user.is_authenticated:
-        pass
+    grid = grid_map()
+    grid_json = json.dumps(grid)
+    data = {'grid': grid_json}
+    return render_template("game.html", title='PLAY', data=data)
+
 
 @bp.route('/sendmove', methods=['POST'])
 def validate_move():
@@ -23,8 +23,8 @@ def validate_move():
     if set(data.keys()) == reqKeys:
         print('Keys Match')
     else:
-        #print(set(data.keys()))
-        #print(reqKeys)
+        # print(set(data.keys()))
+        # print(reqKeys)
         return 'Invalid Move'
 
     output_json['player_id'] = data['player_id']
@@ -43,12 +43,8 @@ def validate_move():
         output_json['posY'] = 'VALID'
     else:
         output_json['posY'] = 'INVALID'
-    
     print("Data: ")
     print(data)
     print("OutputJson: ")
     print(output_json)
     return jsonify(output_json)
-
-def process_move():
-    pass

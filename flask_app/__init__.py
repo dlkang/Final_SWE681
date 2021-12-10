@@ -2,7 +2,6 @@ from flask import Flask, session, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_app.config import Config
-import logging
 
 db = SQLAlchemy()
 log_man = LoginManager()
@@ -12,8 +11,6 @@ log_man.login_view = 'login'
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(Config)
-
-    app.logger.setLevel(logging.INFO)
 
     db.init_app(app)
     log_man.init_app(app)

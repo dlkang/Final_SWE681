@@ -132,3 +132,32 @@ input[type=submit] {
   align-self: start;
   min-width: 10em;
 }
+.centered {
+  margin:50px auto;
+  text-align:center;
+}
+
+.button {
+}
+
+.button.large{
+  padding: 12px 30px;
+  text-transform: uppercase;
+}
+
+.button.large:active{
+  top: 2px;
+}
+
+.button.green{
+  background-color: #57a957;
+  border-color: #57a957;
+}
+
+.button.green:hover{
+  background-color: #62c462;
+}
+
+.button.green:active{
+  background: #57a957;
+}
