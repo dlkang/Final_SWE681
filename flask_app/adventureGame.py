@@ -13,7 +13,6 @@ def start_game():
     data = {'grid': grid_json}
     return render_template("game.html", title='PLAY', data=data)
 
-
 @bp.route('/sendmove', methods=['POST'])
 def validate_move():
     output_json = dict()

@@ -18,7 +18,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(60), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-
+    queue_pos = db.Column(db.Integer, nullable=True)
 
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)

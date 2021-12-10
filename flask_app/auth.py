@@ -16,7 +16,7 @@ def register():
     if form.validate_on_submit():
         hashed_pwd = security.generate_password_hash(form.password.data)
         print(hashed_pwd)
-        new_user = User(username=form.username.data, password=hashed_pwd, email=form.email.data)
+        new_user = User(username=form.username.data, password=hashed_pwd, email=form.email.data, queue_pos=None)
         db.session.add(new_user)
         db.session.commit()
         flash("Registration successful, you are now able to log in", "success")
@@ -28,7 +28,9 @@ def register():
 
 @bp.route('/login', methods=['POST', 'GET'])
 def login():
+    print('logging in')
     if current_user.is_authenticated:
+        print('Authenticated User')
         return redirect(url_for("index"))
     form = LoginForm()
     user = User.query.filter_by(username=form.username.data).first()
