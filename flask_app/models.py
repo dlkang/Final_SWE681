@@ -1,6 +1,11 @@
-from flask_app import db
+from flask_app import db, log_man
 from flask_login import UserMixin
 
+
+
+@log_man.user_loader
+def load_user(account_id):
+    return Account.query.get(int(account_id))
 
 play = db.Table('play',
                 db.Column('id', db.Integer, primary_key=True),
