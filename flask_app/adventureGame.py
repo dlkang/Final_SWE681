@@ -1,18 +1,44 @@
 
-from flask import session,Blueprint, redirect, render_template, request, url_for, flash, jsonify
-from flask_app.game import grid_map, Room, Player
+from flask import session,Blueprint, redirect, render_template, request, url_for, flash
+from flask_app.game import grid_map, Room, populate_heroes
 from flask_app import db
 from flask_app.models import Account, Game, Hero
 from flask_app.forms import HeroForm
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, close_room, emit, send
 import json
-from datetime import datetime
 import time
 from uuid import uuid4
 
 
 bp = Blueprint('game', __name__, url_prefix='/play')
+
+@bp.route('/hero', methods=['POST', 'GET'])
+def hero_select():
+    if current_user.is_authenticated:
+        #Populate hero table
+        if Hero.query.count() == 0:
+            print("Populating Hero table")
+            populate_heroes()
+        form = HeroForm()
+        if form.validate_on_submit():
+            form_hero = form.hero_class.data
+            print(form_hero)
+            c_user_id = current_user.get_id()
+            c_user = Account.query.filter_by(id=c_user_id).first()
+            realhero = Hero.query.filter_by(hero_class=form_hero).first()
+            if realhero:
+                c_user.hero_class = realhero.hero_class
+                db.session.commit()
+                return render_template("lobby.html")
+            else:
+                print("Error selecting hero")
+                render_template('hero.html', title='Hero Selection', form=form)
+        return render_template('hero.html', title='Hero Selection', form=form)
+    else:
+        print("User not authenticated, please login")
+        return redirect(url_for('auth.login'))
+
 
 socketio = SocketIO()
 
@@ -26,14 +52,14 @@ def create_game():
         return redirect(url_for("auth.login"))
 
     #create game identifier and check it doesnt exist
-    id = str(uuid4().int)
-    if id in rooms:
+    room_id = str(uuid4().int)
+    if room_id in rooms:
         raise Exception("Games with the same ID cant exist")
 
-    rooms[id] = Room(id)
+    rooms[room_id] = Room(room_id)
 
     #Redirect to the room
-    return redirect(url_for('game.room', id=id))
+    return redirect(url_for('game.game', room_id=room_id))
 
 @bp.route('/joingame')
 def join_game():
@@ -52,22 +78,22 @@ def join_game():
 
 
 # Game room function: where the game occurs
-@bp.route('/game/<id>')
-def game(id):
+@bp.route('/game/<room_id>')
+def game(room_id):
     if not current_user.is_authenticated:
         flash('You need to login first.')
         return redirect(url_for('auth.login'))
 
     # Gets the room object from the active rooms dictionary
-    room = rooms.get(id)
-
-    # Back to index if the room doesnt exist anymore
+    room = rooms.get(room_id)
+    print('Room created has id ' + room_id)
+    # Back to index if the room doesnt exist
     if room is None:
         flash('Game not found.')
         return redirect(url_for('index'))
 
     # Saves the room in the session
-    session['room'] = id
+    session['room'] = room_id
 
     # Add the new player to the room
     if current_user.username not in room.getPlayers():
@@ -140,7 +166,6 @@ def new_disconnection():
         if player not in room.connected:
             send("User {} was afk for too long.".format(player.name), namespace='/room', room=room)
 
-            # TODO The player loses the game IMPLEMENT IT
             player.health = 0
             # The game ends
             finish(room)
@@ -159,13 +184,15 @@ def new_disconnection():
 
 #TODO Game start
 def start(room):
-    #Map is created
+    #Map is created and saved for room
     grid = grid_map()
     grid_json = json.dumps(grid)
-    map = {'grid': grid_json}
+    map_data = {'grid': grid_json}
 
-    #Database is initialized
-    #start_db(room)
+    room.map = map_data['grid']
+
+    for player in room.players:
+        emit('start_game', data=map_data, namespace="/room", room=player.socket_id)
     return
 
 

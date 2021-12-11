@@ -2,12 +2,16 @@
 
 {% block header %}
   <h1>{% block title %}Games Available To Join{% endblock %}</h1>
+  <ul>
+      <li><a href="{{ url_for('game.create_game') }}">Create Game</a>
+      <li><a href="{{ url_for('game.join_game') }}">Join Game</a>
+  </ul>
 {% endblock %}
 
 {% block content %}
 <div class='list-group'>
   {% for room in rooms %}
-  <a href='{{ url_for('game.game', id=room[0]) }}' class="list-group-item list-group-item-action">
+  <a href="{{ url_for('game.game', id=room[0]) }}" class="list-group-item list-group-item-action">
     <div class="d-flex w-100 justify-content-between">
       <h5 class="mb-1">Game</h5>
    </div>

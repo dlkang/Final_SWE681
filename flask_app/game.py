@@ -76,7 +76,6 @@ class Room:
 
         # Information about the room
         self.started = None
-        self.finished = None
         self.player_round = None
 
         # The map of the game
@@ -128,9 +127,9 @@ class Room:
         return None
 
     # Gets a player in the room by id
-    def getById(self, id):
+    def getBySid(self, sid):
         for p in self.players:
-            if p.id == id:
+            if p.socket_id == sid:
                 return p
         return None
 

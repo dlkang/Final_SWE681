@@ -8,9 +8,6 @@
         <button id="left"><-</button>
         <button id="right">-></button>
         <button id="attack">Attack</button>
-        <script type="text/javascript">
-            var graphData = {{ data.grid | safe}}
-        </script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.3/socket.io.js"></script>
         <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>`
     {% endblock content %}
