@@ -157,7 +157,7 @@ def new_disconnection():
     return
 
 
-#Game start
+#TODO Game start
 def start(room):
     #Map is created
     grid = grid_map()
@@ -165,18 +165,33 @@ def start(room):
     map = {'grid': grid_json}
 
     #Database is initialized
-    start_db(room)
-
-    # Every player receives the names of other players
-    # and his team (based on his possition entering the room)
-    for p in room.players:
-        data = {
-            "scoreBlue": room.scoreBlue,
-            "scoreRed": room.scoreRed,
-            "players": room.getPlayers(),
-            "player_number": room.players.index(p)
-        }
-        emit('start_game', data, namespace='/game', room=p.sid)
-    new_round(room)
+    #start_db(room)
     return
 
+
+def finish(room):
+    # Checks the player health to check who won
+    for player in room.players:
+        if player.health == 0:
+            msg = "Game ended " + player.name + " lost"
+            send(msg, namespace='/room', room=room)
+
+            # Updates the wins and losses for each player in the DB
+            user = Account.query.filter_by(username=player.name).first()
+            emit('finish', {"message": "You lost!"}, namespace='/room', room=player.sid)
+            user.losses = user.losses + 1
+        else:
+            # Updates the wins and losses for each player in the DB
+            user = Account.query.filter_by(username=player.name).first()
+            emit('finish', {"message": "You won!"}, namespace='/room', room=player.sid)
+            user.wins = user.wins + 1
+
+    # Sets game status to finished
+    game = Game.query.filter_by(room_id=room.id).first()
+    game.status = 2
+    db.session.commit()
+
+    # Removes the room
+    rooms.pop(session['room'])
+    close_room(room)
+    return
