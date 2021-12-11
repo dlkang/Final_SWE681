@@ -16,6 +16,9 @@
     <!-- Custom styles for this template -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
+    <!-- Added jQuery to handle requests -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
     <!-- Added D3.js for graphics -->
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
@@ -29,7 +32,8 @@
   <ul>
       <li><a href="{{ url_for('index') }}">Home</a></li>
     {% if current_user.is_authenticated %}
-      <li><a href="{{ url_for('game.start_game') }}">Play</a>
+      <li><a href="{{ url_for('game.create_game') }}">Create Game</a>
+      <li><a href="{{ url_for('game.join_game') }}">Join Game</a>
       <li><a href="{{ url_for('auth.logout') }}">Log Out</a>
     {% else %}
       <li><a href="{{ url_for('auth.register') }}">Register</a>

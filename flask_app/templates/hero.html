@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+    {% block content %}
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Select Hero</legend>
+                <div class="form-group">
+                    {{ form.hero_class.label(class="form-control-label") }}
+                    {% if form.hero_class.errors %}
+                        {{ form.hero_class(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in form.hero_class.errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.hero_class(class="form-control form-control-lg") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-outline-info") }}
+            </div>
+        </form>
+    {% endblock content %}
