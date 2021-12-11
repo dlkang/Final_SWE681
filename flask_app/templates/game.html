@@ -1,9 +1,21 @@
 {% extends "base.html" %}
     {% block content %}
         <div id="grid"></div>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.0/socket.io.min.js"></script>
         <script type="text/javascript">
             var graphData = {{ data.grid | safe}}
             console.log(graphData)
+        </script>
+        <script type="text/javascript">
+        $(document).ready(function() {
+            var socket = io.connect('https://20.119.96.164:5000');
+
+            socket.on('connect', function() {
+                socket.send('User has connected');
+                console.log('sending');
+            });
+        });
         </script>
         <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
     {% endblock content %}

@@ -2,9 +2,18 @@ from flask import Blueprint, redirect, render_template, request, url_for, flash,
 from flask_app.game import grid_map
 import json
 from werkzeug import security
+from __main__ import *
 
 bp = Blueprint('game', __name__, url_prefix='/game')
 
+@socketio.on('connect')
+def new_connection():
+    print('Socket Connected')
+
+@socketio.on('message')
+def handleMessage(msg):
+    print('Message: ' + msg)
+    send(msg, broadcast=True)
 
 @bp.route('/start', methods=['GET'])
 def start_game():
