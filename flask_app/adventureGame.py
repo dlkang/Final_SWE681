@@ -74,6 +74,13 @@ def join_game():
         flash('You need to be logged in to join a game')
         return redirect(url_for("auth.login"))
 
+    #Checks that the user has selected a hero
+    c_user_id = current_user.get_id()
+    c_user = Account.query.filter_by(id=c_user_id).first()
+    c_user_hero = c_user.hero_class
+    if c_user_hero is None:
+        return redirect(url_for("game.hero_select"))
+    
     # Get a list of all the rooms ready to be joined
     ready = []
 
@@ -102,7 +109,7 @@ def game(room_id):
     # Saves the room in the session
     session['room'] = room_id
 
-    # Add the new player to the room
+    # Add the new player to the room if not already in it
     if current_user.username not in room.getPlayers():
         # Unless the room is full
         if room.isFull():
@@ -139,7 +146,6 @@ def new_connection():
     player = room.getByName(current_user.username)
 
     # Does nothing if the player has not already been added to the room
-    # or if the player is already connected
     if player is None or player in room.connected:
         return False
 
