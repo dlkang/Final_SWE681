@@ -1,9 +1,15 @@
 {% extends "base.html" %}
     {% block content %}
-        <div id="grid"></div>
-        <script type="text/javascript">
-            var graphData = {{ data.grid | safe}}
-            console.log(graphData)
-        </script>
-        <script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>
+        <div id="grid">
+            <div class="log_window" id="log_window"></div>
+        </div>
+        <button id="up">Up</button>
+        <button id="down">Down</button>
+        <button id="left"><-</button>
+        <button id="right">-></button>
+        <button id="attack">Attack</button>
+<script src="https://cdn.socket.io/4.4.0/socket.io.min.js"
+        integrity="sha384-1fOn6VtTq3PWwfsOrk45LnYcGosJwzMHv+Xh/Jx5303FVOXzEnw0EpLv30mtjmlj" crossorigin="anonymous">
+</script>
+<script type="text/javascript" src="{{ url_for('static', filename='main.js') }}"></script>`
     {% endblock content %}

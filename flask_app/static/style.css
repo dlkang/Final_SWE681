@@ -137,27 +137,12 @@ input[type=submit] {
   text-align:center;
 }
 
-.button {
-}
-
-.button.large{
-  padding: 12px 30px;
-  text-transform: uppercase;
-}
-
-.button.large:active{
-  top: 2px;
-}
-
-.button.green{
-  background-color: #57a957;
-  border-color: #57a957;
-}
-
-.button.green:hover{
-  background-color: #62c462;
-}
-
-.button.green:active{
-  background: #57a957;
+.log_window {
+  float: right;
+  height: 500px;
+  width: 300px;
+  border: 1px;
+  overflow: auto;
+  font-size: 1em;
+  font-family: Arial;
 }
