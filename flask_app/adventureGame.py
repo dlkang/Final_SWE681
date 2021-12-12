@@ -80,7 +80,7 @@ def join_game():
     c_user_hero = c_user.hero_class
     if c_user_hero is None:
         return redirect(url_for("game.hero_select"))
-    
+
     # Get a list of all the rooms ready to be joined
     ready = []
 
@@ -228,11 +228,10 @@ def start(room):
     return
 
 
-#TODO implement finish
 def finish(room):
     winner = None
     loser = None
-    # Updates the wins and losses for each player in the DB
+    # Updates the wins and losses for each player in the DB and clear the class selected
     for player in room.players:
         if player.health == 0:
             send("Game ended " + player.name + " lost", namespace='/room', room=room)
@@ -240,17 +239,21 @@ def finish(room):
             user = Account.query.filter_by(username=player.name).first()
             emit('finish', {"message": "You lost!"}, namespace='/room', room=player.socket_id)
             user.losses = user.losses + 1
+            user.hero_class = None
+            db.session.commit()
         else:
             winner = player.name
             user = Account.query.filter_by(username=player.name).first()
             emit('finish', {"message": "You won!"}, namespace='/room', room=player.socket_id)
             user.wins = user.wins + 1
+            user.hero_class = None
+            db.session.commit()
 
     # Sets game status to finished
-    game = Game.query.filter_by(room_id=room.id).first()
-    game.status = 1
-    game.winner = winner
-    game.loser = loser
+    game_p = Game.query.filter_by(room_id=room.id).first()
+    game_p.status = 1
+    game_p.winner = winner
+    game_p.loser = loser
     db.session.commit()
 
     # Removes the room
