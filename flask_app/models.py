@@ -7,10 +7,9 @@ from flask_login import UserMixin
 def load_user(account_id):
     return Account.query.get(int(account_id))
 
-play = db.Table('play',
-                db.Column('id', db.Integer, primary_key=True),
-                db.Column('account_id', db.Integer, db.ForeignKey('account.id'), unique=False),
-                db.Column('game_id', db.Integer, db.ForeignKey('game.id'), unique=False))
+players = db.Table('players',
+                db.Column('account_id', db.Integer, db.ForeignKey('account.id'), primary_key=True),
+                db.Column('game_id', db.Integer, db.ForeignKey('game.id'), primary_key=True))
 
 
 class Account(db.Model, UserMixin):
@@ -19,12 +18,15 @@ class Account(db.Model, UserMixin):
     password = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     wins = db.Column(db.Integer, unique=False, nullable=False, default=0)
-    loses = db.Column(db.Integer, unique=False, nullable=False, default=0)
+    losses = db.Column(db.Integer, unique=False, nullable=False, default=0)
     queue_pos = db.Column(db.Integer, nullable=False, default=0)
     hero_class = db.Column(db.String(20), nullable=True)
+    games = db.relationship('Game', secondary=players, backref=db.backref('players', lazy=True), lazy='subquery')
+
 
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.String(120), nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0)
     winner = db.Column(db.Integer, nullable=True)
     loser = db.Column(db.Integer, nullable=True)
@@ -32,14 +34,7 @@ class Game(db.Model):
     def_name = db.Column(db.String(120), nullable=False)
     att_class = db.Column(db.String(20), unique=False)
     def_class = db.Column(db.String(20), unique=False)
-    att_hp = db.Column(db.Integer, nullable=False)
-    def_hp = db.Column(db.Integer, nullable=False)
-    att_loc_x = db.Column(db.Integer, nullable=False)
-    att_loc_y = db.Column(db.Integer, nullable=False)
-    def_loc_x = db.Column(db.Integer, nullable=False)
-    def_loc_y = db.Column(db.Integer, nullable=False)
-    map = db.Column(db.Text, nullable=False)
-    players = db.relationship('Account', secondary=play, backref=db.backref('games', lazy=True), lazy='subquery')
+
 
 
 class Hero(db.Model):
@@ -48,6 +43,7 @@ class Hero(db.Model):
     health_points = db.Column(db.Integer, nullable=False)
     attack_damage = db.Column(db.Integer, nullable=False)
     range = db.Column(db.Integer, nullable=False)
+    precision = db.Column(db.Float, nullable=False)
 
 
 class Action(db.Model):

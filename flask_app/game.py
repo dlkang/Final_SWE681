@@ -13,9 +13,9 @@ MAGE_MAX_HEALTH_POINTS = 2
 
 
 def populate_heroes():
-    hero1 = Hero(hero_class='Melee', health_points=MELEE_MAX_HEALTH_POINTS, range=1, attack_damage=2)
-    hero2 = Hero(hero_class='Ranger', health_points=RANGED_MAX_HEALTH_POINTS, range=2, attack_damage=1)
-    hero3 = Hero(hero_class='Mage', health_points=MAGE_MAX_HEALTH_POINTS, range=3, attack_damage=1)
+    hero1 = Hero(hero_class='Melee', health_points=MELEE_MAX_HEALTH_POINTS,  attack_damage=2, range=1, precision=1)
+    hero2 = Hero(hero_class='Ranger', health_points=RANGED_MAX_HEALTH_POINTS, attack_damage=2, range=2, precision=0.8)
+    hero3 = Hero(hero_class='Mage', health_points=MAGE_MAX_HEALTH_POINTS,  attack_damage=3, range=3, precision=0.5)
     db.session.add(hero1)
     db.session.commit()
     db.session.add(hero2)
@@ -31,30 +31,35 @@ def grid_map(rows=ROWS, columns=COLUMNS):
     width = 50
     height = 50
     for row in range(rows):
-        column_data = []
+        row_data = []
         for column in range(columns):
-            tile = {'x': xpos, 'y': ypos, 'width': width, 'height': height, 'hero': 0}
-            column_data.append(tile)
+            tile = {'x': xpos, 'y': ypos, 'width': width, 'height': height, 'hero1': 0, 'hero2': 0}
+            row_data.append(tile)
             xpos += width
-        data.append(column_data)
+        data.append(row_data)
         xpos = 1
         ypos += height
+    spawn_heroes(data)
     return data
 
-
+#Randomly spaws heroes in opposite sides of the map
 def spawn_heroes(data, rows=ROWS, columns=COLUMNS):
-    attx = 0
-    atty = random.randint(0, COLUMNS-1)
-    defx = ROWS-1
-    defy = random.randint(0, COLUMNS-1)
+    attx = random.randint(0, COLUMNS-1)
+    atty = ROWS-1
+    defx = random.randint(0, COLUMNS-1)
+    defy = 0
+    #TODO send this to the game?
     Game.att_loc_x = attx
     Game.att_loc_y = atty
 
     Game.def_loc_x = defx
     Game.def_loc_y = defy
 
-    tilex = data[attx][atty]
-    tiley = data[defx][defy]
+    tileatt = data[atty][attx]
+    tiledef = data[defy][defx]
+
+    tileatt["hero1"] = 1
+    tiledef["hero2"] = 1
 
 
 
@@ -71,15 +76,10 @@ class Player:
         self.inactive = False
         self.hero_class = False
         self.health = None
-        self.turn = None
+        self.dmg = None
+        self.range = None
+        self.precision = None
 
-
-
-
-# A game round
-class Round:
-    def __init__(self, players):
-        self.players = players
 
 # Room class
 class Room:
@@ -88,7 +88,10 @@ class Room:
 
         # Information about the room
         self.started = None
+        self.finished = None
         self.player_turn = None
+        self.player1 = None
+        self.player2 = None
 
         # The map of the game
         self.map = None
@@ -146,8 +149,11 @@ class Room:
         return None
 
     # Gets the id of the player with the turn
-    def getTurn(self):
-        return self.player_round
+    def getHealth(self, name):
+        for p in self.players:
+            if p.name == name:
+                return p.health
+        return None
 
     # Gets the map of the room
     def getMap(self):
@@ -155,14 +161,33 @@ class Room:
 
     # Adds a player to the connected list and registers the id
     def connect(self, player, id):
-        player.id = id
+        player.socket_id = id
         self.connected.append(player)
         return
 
     # Removes a player from the connected list
     def disconnect(self, player):
-        player.id = None
+        player.socket_id = None
         if player in self.connected:
             self.connected.remove(player)
         return
 
+    # Gets the x and y values of hero 1
+    def getHero1Pos(self, rows=ROWS, columns=COLUMNS):
+        map = self.map
+        for y in range(rows):
+            for x in range(columns):
+                map_tile = map[y][x]
+                if map_tile['hero1'] > 0:
+                    data = [x, y]
+                    return data
+
+    # Gets the x and y values of hero 2
+    def getHero2Pos(self, rows=ROWS, columns=COLUMNS):
+        map = self.map
+        for y in range(rows):
+            for x in range(columns):
+                map_tile = map[y][x]
+                if map_tile['hero2'] > 0:
+                    data = [x, y]
+                    return data

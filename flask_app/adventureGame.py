@@ -1,12 +1,12 @@
 
 from flask import session,Blueprint, redirect, render_template, request, url_for, flash
-from flask_app.game import grid_map, Room, populate_heroes
+from flask_app.game import grid_map, Room, populate_heroes, ROWS, COLUMNS
 from flask_app import db
 from flask_app.models import Account, Game, Hero
 from flask_app.forms import HeroForm
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, close_room, emit, send
-import json
+from random import choices
 import time
 from uuid import uuid4
 
@@ -16,7 +16,7 @@ bp = Blueprint('game', __name__, url_prefix='/play')
 @bp.route('/hero', methods=['POST', 'GET'])
 def hero_select():
     if current_user.is_authenticated:
-        #Populate hero table
+        #Populate hero table if not populated yet
         if Hero.query.count() == 0:
             print("Populating Hero table")
             populate_heroes()
@@ -30,14 +30,15 @@ def hero_select():
             if realhero:
                 c_user.hero_class = realhero.hero_class
                 db.session.commit()
-                return render_template("lobby.html")
+                return redirect(url_for('game.join_game'))
             else:
                 print("Error selecting hero")
-                render_template('hero.html', title='Hero Selection', form=form)
+                return render_template('hero.html', title='Hero Selection', form=form)
         return render_template('hero.html', title='Hero Selection', form=form)
     else:
         print("User not authenticated, please login")
         return redirect(url_for('auth.login'))
+
 
 
 socketio = SocketIO()
@@ -57,6 +58,12 @@ def create_game():
         raise Exception("Games with the same ID cant exist")
 
     rooms[room_id] = Room(room_id)
+
+    # Map is created and saved for room
+    grid = grid_map()
+    print("The map was added to the session")
+    room = rooms.get(room_id)
+    room.map = grid
 
     #Redirect to the room
     return redirect(url_for('game.game', room_id=room_id))
@@ -86,7 +93,7 @@ def game(room_id):
 
     # Gets the room object from the active rooms dictionary
     room = rooms.get(room_id)
-    print('Room created has id ' + room_id)
+    print('Room has id ' + room_id)
     # Back to index if the room doesnt exist
     if room is None:
         flash('Game not found.')
@@ -103,11 +110,20 @@ def game(room_id):
             return redirect(url_for('play.join_game'))
         room.addPlayer(current_user.username)
 
+        if room.player1 is None:
+            room.player1 = current_user.username
+            room.player_turn = current_user.username
+        else:
+            room.player2 = current_user.username
         # Modify the value of the health of the player to match the class selected
+        print("Health values modified")
         player = room.getByName(current_user.username)
         player.hero_class = current_user.hero_class
         hero = Hero.query.filter_by(hero_class=player.hero_class).first()
         player.health = hero.health_points
+        player.range = hero.range
+        player.dmg = hero.attack_damage
+        player.precision = hero.precision
 
     return render_template('game.html')
 
@@ -133,6 +149,7 @@ def new_connection():
     # Adds the player to the room so that it receives events
     join_room(room)
     print("A player has joined the room")
+
     # If player was just inactive
     if room.isStarted():
         return True
@@ -187,44 +204,317 @@ def new_disconnection():
     return
 
 
-#TODO Game start
 def start(room):
-    print("Starting the game")
-    #Map is created and saved for room
-    grid = grid_map()
-    grid_json = json.dumps(grid)
-    map_data = {'grid': grid_json}
-
-    room.map = map_data['grid']
-
-    for player in room.players:
-        emit('start_game', data=map_data, namespace="/room", room=player.socket_id)
+    room.started = 1
+    player1 = room.getByName(room.player1)
+    player2 = room.getByName(room.player2)
+    data = {
+        "player1": player1.name,
+        "player1_class": player1.hero_class,
+        "player2": player2.name,
+        "player2_class": player2.hero_class,
+        "player_turn": room.player_turn
+    }
+    emit('paint', room.map, namespace="/room", room=room)
+    game_db(room)
+    emit('start_game', data, namespace="/room", room=room)
+    send("Starting the game", namespace='/room', room=room)
     return
 
 
+#TODO implement finish
 def finish(room):
-    # Checks the player health to check who won
+    winner = None
+    loser = None
+    # Updates the wins and losses for each player in the DB
     for player in room.players:
         if player.health == 0:
-            msg = "Game ended " + player.name + " lost"
-            send(msg, namespace='/room', room=room)
-
-            # Updates the wins and losses for each player in the DB
+            send("Game ended " + player.name + " lost", namespace='/room', room=room)
+            loser = player.name
             user = Account.query.filter_by(username=player.name).first()
-            emit('finish', {"message": "You lost!"}, namespace='/room', room=player.sid)
+            emit('finish', {"message": "You lost!"}, namespace='/room', room=player.socket_id)
             user.losses = user.losses + 1
         else:
-            # Updates the wins and losses for each player in the DB
+            winner = player.name
             user = Account.query.filter_by(username=player.name).first()
-            emit('finish', {"message": "You won!"}, namespace='/room', room=player.sid)
+            emit('finish', {"message": "You won!"}, namespace='/room', room=player.socket_id)
             user.wins = user.wins + 1
 
     # Sets game status to finished
     game = Game.query.filter_by(room_id=room.id).first()
-    game.status = 2
+    game.status = 1
+    game.winner = winner
+    game.loser = loser
     db.session.commit()
 
     # Removes the room
     rooms.pop(session['room'])
     close_room(room)
     return
+
+
+@socketio.on('game_move', namespace='/room')
+def game_move(data):
+    if not current_user.is_authenticated:
+        print("User is not authenticated")
+        return False
+
+    # Get room from the session
+    room = rooms.get(session['room'])
+    if room is None:
+        print("Cannot get room")
+        return False
+
+    # Checks that the sid corresponds to player socket_id
+    player = room.getBySid(request.sid)
+    if player not in room.players or player.name != current_user.username:
+        print("SID doesnt correspond")
+        return False
+
+    # Checks that the room has started
+    if not room.isStarted():
+        emit('message', "Wait for other players to join", namespace='/room', room=request.sid)
+        return False
+
+    # Player cant make a move if its not their turn
+    if player.name != room.player_turn:
+        emit('message', "Not your turn!!", namespace='/room', room=request.sid)
+        return False
+
+    # Get position of player that made the move and validate it
+    current_position = []
+    other_position = []
+    if player.name == room.player1:
+        current_position = room.getHero1Pos()
+        other_position = room.getHero2Pos()
+    if player.name == room.player2:
+        current_position = room.getHero2Pos()
+        other_position = room.getHero1Pos()
+
+    if not validate_move(data, current_position, other_position):
+        emit('message', "That move is not valid", namespace='/room', room=request.sid)
+        return False
+
+    # Depending on the move, change position
+    move_player(data, room, current_position)
+
+    position_new = []
+    if player.name == room.player1:
+        position_new = room.getHero1Pos()
+
+    if player.name == room.player2:
+        position_new = room.getHero2Pos()
+
+    send("User " + room.player_turn + " moved from tile x:" + str(current_position[0]+1) + ' y:' + str(current_position[1]+1) +
+         " to x:" + str(position_new[0]+1) + " y:" + str(position_new[1]+1) + ".", namespace='/room', room=room)
+
+    # Change the turn of the player
+    if room.player_turn == room.player1:
+        room.player_turn = room.player2
+    elif room.player_turn == room.player2:
+        room.player_turn = room.player1
+    send("Turn of player " + room.player_turn + " now", namespace='/room', room=room)
+    emit('paint', room.map, namespace="/room", room=room)
+    return
+
+
+# Validates the moves according with the value and the room map
+def validate_move(data, current_position, other_position):
+    if data == 'right':
+        if current_position[0] == (COLUMNS-1):
+            return False
+        if current_position[0]+1 == other_position[0] and current_position[1] == other_position[1]:
+            return False
+        return True
+    if data == 'left':
+        if current_position[0] == 0:
+            return False
+        if current_position[0]-1 == other_position[0] and current_position[1] == other_position[1]:
+            return False
+        return True
+    if data == 'up':
+        if current_position[1] == 0:
+            return False
+        if current_position[1]-1 == other_position[1] and current_position[0] == other_position[0]:
+            return False
+        return True
+    if data == 'down':
+        if current_position[1] == (ROWS-1):
+            return False
+        if current_position[1]+1 == other_position[1] and current_position[0] == other_position[0]:
+            return False
+        return True
+    return False
+
+
+# Makes the move in the map
+def move_player(data, room, position):
+    if data == 'right':
+        if room.player_turn == room.player1:
+            room.map[position[1]][position[0]]['hero1'] = 0
+            room.map[position[1]][position[0]+1]['hero1'] = 1
+        if room.player_turn == room.player2:
+            room.map[position[1]][position[0]]['hero2'] = 0
+            room.map[position[1]][position[0]+1]['hero2'] = 1
+    if data == 'left':
+        if room.player_turn == room.player1:
+            room.map[position[1]][position[0]]['hero1'] = 0
+            room.map[position[1]][position[0]-1]['hero1'] = 1
+        if room.player_turn == room.player2:
+            room.map[position[1]][position[0]]['hero2'] = 0
+            room.map[position[1]][position[0]-1]['hero2'] = 1
+
+    if data == 'up':
+        if room.player_turn == room.player1:
+            room.map[position[1]][position[0]]['hero1'] = 0
+            room.map[position[1]-1][position[0]]['hero1'] = 1
+        if room.player_turn == room.player2:
+            room.map[position[1]][position[0]]['hero2'] = 0
+            room.map[position[1]-1][position[0]]['hero2'] = 1
+
+    if data == 'down':
+        if room.player_turn == room.player1:
+            room.map[position[1]][position[0]]['hero1'] = 0
+            room.map[position[1]+1][position[0]]['hero1'] = 1
+        if room.player_turn == room.player2:
+            room.map[position[1]][position[0]]['hero2'] = 0
+            room.map[position[1]+1][position[0]]['hero2'] = 1
+
+    return
+
+
+@socketio.on('game_attack', namespace="/room")
+def game_attack():
+    if not current_user.is_authenticated:
+        print("User is not authenticated")
+        return False
+
+    # Get room from the session
+    room = rooms.get(session['room'])
+    if room is None:
+        print("Cannot get room")
+        return False
+
+    # Checks that the sid corresponds to player socket_id
+    player = room.getBySid(request.sid)
+    if player not in room.players or player.name != current_user.username:
+        print("SID doesnt correspond")
+        return False
+
+    # Checks that the room has started
+    if not room.isStarted():
+        emit('message', "Wait for other players to join", namespace='/room', room=request.sid)
+        return False
+
+    # Player cant make a move if its not their turn
+    if player.name != room.player_turn:
+        emit('message', "Not your turn!!", namespace='/room', room=request.sid)
+        return False
+
+    # Get enemy, position of both players
+    ally_pos = []
+    enemy_pos = []
+    enemy = None
+    if player.name == room.player1:
+        ally_pos = room.getHero1Pos()
+        enemy_pos = room.getHero2Pos()
+        enemy_player = room.player2
+        enemy = room.getByName(enemy_player)
+    if player.name == room.player2:
+        ally_pos = room.getHero2Pos()
+        enemy_pos = room.getHero1Pos()
+        enemy_player = room.player1
+        enemy = room.getByName(enemy_player)
+    attack_range = player.range
+
+    if not validate_attack(attack_range, ally_pos, enemy_pos):
+        emit('message', "The enemy is not within range", namespace='/room', room=request.sid)
+        return False
+
+    if enemy is None:
+        return False
+
+    # Attack another player
+    attack_player(room, player, enemy)
+
+    send("The remaining health of player " + player.name + " is " + str(player.health), namespace='/room', room=room)
+    send("The remaining health of player " + enemy.name + " is " + str(enemy.health), namespace='/room', room=room)
+
+    # Check the health of both players
+    if enemy.health <= 0:
+        finish(room)
+        return True
+
+    # Change the turn of the player
+    if room.player_turn == room.player1:
+        room.player_turn = room.player2
+    elif room.player_turn == room.player2:
+        room.player_turn = room.player1
+    send("Turn of player " + room.player_turn + " now", namespace='/room', room=room)
+
+    return
+
+
+# Validate that the enemy is within range
+def validate_attack(attack_range, ally_pos, enemy_pos):
+    if ally_pos[0] > enemy_pos[0]:
+        if ally_pos[1] > enemy_pos[1]:
+            x_dis = ally_pos[0]-enemy_pos[0]
+            y_dis = ally_pos[1]-enemy_pos[1]
+            if x_dis <= attack_range and y_dis <= attack_range:
+                return True
+            return False
+        else:
+            x_dis = ally_pos[0]-enemy_pos[0]
+            y_dis = enemy_pos[1]-ally_pos[1]
+            if x_dis <= attack_range and y_dis <= attack_range:
+                return True
+            return False
+    else:
+        if ally_pos[1] > enemy_pos[1]:
+            x_dis = enemy_pos[0]-ally_pos[0]
+            y_dis = ally_pos[1]-enemy_pos[1]
+            if x_dis <= attack_range and y_dis <= attack_range:
+                return True
+            return False
+        else:
+            x_dis = enemy_pos[0]-ally_pos[0]
+            y_dis = enemy_pos[1]-ally_pos[1]
+            if x_dis <= attack_range and y_dis <= attack_range:
+                return True
+            return False
+
+def attack_player(room, player, enemy):
+    #Precision check
+    damage_list = [player.dmg, 0]
+    precision_distribution = [player.precision, 1-player.precision]
+    damage = choices(damage_list, precision_distribution)
+
+    if damage[0] == 0:
+        send("User " + player.name + " failed the attack.", namespace='/room', room=room)
+    else:
+        remaining_health = enemy.health - damage[0]
+        if remaining_health < 0:
+            remaining_health = 0
+        enemy.health = remaining_health
+        send("User " + player.name + " attacked " + enemy.name + " and did " + str(damage[0]) + " damage!",
+             namespace='/room', room=room)
+    return
+
+
+def game_db(room):
+    room_id = room.id
+    p1 = room.player1
+    p2 = room.player2
+    player1 = room.getByName(p1)
+    player2 = room.getByName(p2)
+    p1_hero = player1.hero_class
+    p2_hero = player2.hero_class
+    game = Game(room_id=room_id, att_name=p1, def_name=p2, att_class=p1_hero, def_class=p2_hero)
+    list_players = room.getPlayers()
+    for player in list_players:
+        p = room.getByName(player)
+        user = Account.query.filter_by(username=p.name).first()
+        game.players.append(user)
+    db.session.add(game)
+    db.session.commit()

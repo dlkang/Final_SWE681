@@ -73,12 +73,12 @@ def login():
         # Username between 3 and 20 characters
         if not re.search('^[a-zA-Z0-9]{3,20}$', usern):
             flash('Username must be between 3 and 20 characters')
-            return render_template("register.html", title='Registration', form=form)
+            return render_template("login.html", title='Login', form=form)
 
         # Passwords between 8 and 20 characters
         if not re.search('^[a-zA-Z0-9@_!]{8,20}$', pwd):
             flash('Password must be between 8 and 20 characters')
-            return render_template("register.html", title='Registration', form=form)
+            return render_template("login.html", title='Login', form=form)
 
         user = Account.query.filter_by(username=usern).first()
         if user and security.check_password_hash(user.password, form.password.data):
