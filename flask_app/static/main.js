@@ -1,8 +1,7 @@
 $(document).ready(function(){
   var socket = io('/room', {transport: ['websocket']});
-
   socket.on('paint', function(gridData){
-
+    d3.select("svg").remove()
     var grid = d3.select("#grid")
         .append("svg")
         .attr("width","510px")
