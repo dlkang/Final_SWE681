@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Player Records{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div>
+  <table>
+  <tr>
+    <th>Username</th>
+    <th>Wins</th>
+    <th>Losses</th>
+  </tr>
+  {% for player in player_list %}
+  <tr>
+    <td> {{player[0]}}</td>
+    <td> {{player[1]}}</td>
+    <td> {{player[2]}}</td>
+  </tr>
+  {% endfor %}
+  </table>
+</div>
+
+{% endblock %}

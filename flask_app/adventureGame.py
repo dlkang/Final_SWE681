@@ -559,6 +559,20 @@ def display_moves(game_id=None):
 
     return render_template('moves.html', moves=moves)
 
+@bp.route('/player_list', methods=['GET'])
+def display_player_list():
+    player_list = []
+
+    if not current_user.is_authenticated:
+        print("user not authenticated, please login")
+        return redirect(url_for('auth.login'))
+    
+    queried_players = Account.query.order_by(Account.username)
+
+    players = [[account.username, account.wins, account.losses] for account in queried_players]
+
+    return render_template('player_records.html', player_list=players)
+
 def game_db(room):
     room_id = room.id
     p1 = room.player1
