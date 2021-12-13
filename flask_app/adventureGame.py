@@ -512,7 +512,7 @@ def attack_player(room, player, enemy):
     if damage[0] == 0:
         send("User " + player.name + " failed the attack.", namespace='/room', room=room)
         attack_string = "%s missed attacking %s" % (player.name, enemy.name)
-        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player, action=attack_string)
+        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player.name, action=attack_string)
         db.session.add(new_move)
         db.session.commit()
     else:
