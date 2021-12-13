@@ -523,7 +523,7 @@ def attack_player(room, player, enemy):
         send("User " + player.name + " attacked " + enemy.name + " and did " + str(damage[0]) + " damage!",
              namespace='/room', room=room)
         attack_string = "%s attacked %s" % (player.name, enemy.name)
-        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player, action=attack_string)
+        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player.name, action=attack_string)
         
         db.session.add(new_move)
         db.session.commit()
@@ -542,15 +542,18 @@ def display_games():
 
     return render_template('past_games.html', games=games)
 
-@bp.route('/moves')
-def display_moves():
+@bp.route('/moves', methods=['GET'])
+@bp.route('/moves/<game_id>', methods=['GET'])
+def display_moves(game_id=None):
     moves = []
+    if not game_id:
+        return redirect(url_for('index'))
 
     if not current_user.is_authenticated:
         print("user not authenticated, please login")
         return redirect(url_for('auth.login'))
     
-    queried_moves = MoveListScratch.query.order_by(MoveListScratch.timestamp)
+    queried_moves = MoveListScratch.query.filter_by(game_id=game_id).order_by(MoveListScratch.timestamp)
 
     moves = [[move.timestamp, move.game_id, move.username_p1, move.username_p2, move.player_acting, move.action] for move in queried_moves]
 

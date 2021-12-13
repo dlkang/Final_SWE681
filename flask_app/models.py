@@ -13,8 +13,8 @@ players = db.Table('players',
 class Account(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
-    password = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(20), unique=True, nullable=False)
     wins = db.Column(db.Integer, unique=False, nullable=False, default=0)
     losses = db.Column(db.Integer, unique=False, nullable=False, default=0)
     queue_pos = db.Column(db.Integer, nullable=False, default=0)

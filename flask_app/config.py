@@ -3,7 +3,7 @@ import os
 
 class Config:
     SECRET_KEY = os.urandom(24)
-    SQLALCHEMY_DATABASE_URI = 'postgresql://fabianmr@localhost/projectdb'
+    SQLALCHEMY_DATABASE_URI = 'postgresql:///projectdb'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Used to avoid XSS, httponly makes cookies inaccesible through JS API
