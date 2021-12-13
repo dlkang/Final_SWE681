@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Past Games{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div>
+  <table>
+  <tr>
+    <th>Game ID</th>
+    <th>Player 1</th>
+    <th>Player 2</th>
+    <th>Winner</th>
+    <th>Loser</th>
+  </tr>
+  {% for game in games %}
+  <tr>
+    <td> {{game[0]}}</td>
+    <td> {{game[1]}}</td>
+    <td> {{game[2]}}</td>
+    <td> {{game[3]}}</td>
+    <td> {{game[4]}}</td>
+  </tr>
+  {% endfor %}
+  </table>
+</div>
+
+{% endblock %}

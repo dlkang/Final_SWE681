@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>{% block title %}Move List{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+<div>
+  <table>
+  <tr>
+    <th>Timestamp</th>
+    <th>Game ID</th>
+    <th>Player 1</th>
+    <th>Player 2</th>
+    <th>Acting Player</th>
+    <th>Action</th>
+  </tr>
+  {% for move in moves %}
+  <tr>
+    <td> {{move[0]}}</td>
+    <td> {{move[1]}}</td>
+    <td> {{move[2]}}</td>
+    <td> {{move[3]}}</td>
+    <td> {{move[4]}}</td>
+    <td> {{move[5]}}</td>
+  </tr>
+  {% endfor %}
+  </table>
+</div>
+
+{% endblock %}
