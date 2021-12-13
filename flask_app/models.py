@@ -1,8 +1,6 @@
 from flask_app import db, log_man
 from flask_login import UserMixin
 
-# TODO clean database models
-
 @log_man.user_loader
 def load_user(account_id):
     return Account.query.get(int(account_id))
@@ -14,8 +12,8 @@ players = db.Table('players',
 
 class Account(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    username = db.Column(db.String(20), unique=True, nullable=False)
+    password = db.Column(db.String(20), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     wins = db.Column(db.Integer, unique=False, nullable=False, default=0)
     losses = db.Column(db.Integer, unique=False, nullable=False, default=0)
@@ -28,13 +26,12 @@ class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_id = db.Column(db.String(120), nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0)
-    winner = db.Column(db.String(120), nullable=True)
-    loser = db.Column(db.String(120), nullable=True)
-    att_name = db.Column(db.String(120), nullable=False)
-    def_name = db.Column(db.String(120), nullable=False)
+    winner = db.Column(db.String(20), nullable=True)
+    loser = db.Column(db.String(20), nullable=True)
+    att_name = db.Column(db.String(20), nullable=False)
+    def_name = db.Column(db.String(20), nullable=False)
     att_class = db.Column(db.String(20), unique=False)
     def_class = db.Column(db.String(20), unique=False)
-
 
 
 class Hero(db.Model):

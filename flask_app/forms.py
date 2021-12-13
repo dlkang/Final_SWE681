@@ -35,7 +35,6 @@ class LoginForm(FlaskForm):
 
 
 class HeroForm(FlaskForm):
-    # TODO change choices to get values from DB
     classes = ['Melee', 'Ranger', 'Mage']
     hero_class = SelectField('Hero Class', choices=classes, validators=[DataRequired()])
     submit = SubmitField('Start Game')

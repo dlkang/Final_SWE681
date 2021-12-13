@@ -23,7 +23,6 @@ def hero_select():
         form = HeroForm()
         if form.validate_on_submit():
             form_hero = form.hero_class.data
-            print(form_hero)
             c_user_id = current_user.get_id()
             c_user = Account.query.filter_by(id=c_user_id).first()
             realhero = Hero.query.filter_by(hero_class=form_hero).first()
