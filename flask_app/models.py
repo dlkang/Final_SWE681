@@ -52,3 +52,21 @@ class Action(db.Model):
     movement = db.Column(db.Text, nullable=True)
     attack = db.Column(db.Integer, nullable=True)
     range = db.Column(db.Text, nullable=True)
+
+class MoveList(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.Float, nullable=False)
+    game_id = db.Column(db.String(100), nullable=False)
+    username_p1 = db.Column(db.String(120), nullable=False)
+    username_p2 = db.Column(db.String(120), nullable=False)
+    player_acting = db.Column(db.String(120), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+
+class MoveListScratch(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.Float, nullable=False)
+    game_id = db.Column(db.String(100), nullable=False)
+    username_p1 = db.Column(db.String(120), nullable=False)
+    username_p2 = db.Column(db.String(120), nullable=False)
+    player_acting = db.Column(db.String(120), nullable=False)
+    action = db.Column(db.String(100), nullable=False)

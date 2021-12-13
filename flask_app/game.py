@@ -99,6 +99,9 @@ class Room:
         # List of players in the room
         self.players = []
         self.connected = []
+    
+    def getRoomId(self):
+        return self.id
 
     # The room is full if it has 2 players
     def isFull(self):

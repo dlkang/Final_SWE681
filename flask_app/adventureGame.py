@@ -2,11 +2,12 @@
 from flask import session,Blueprint, redirect, render_template, request, url_for, flash
 from flask_app.game import grid_map, Room, populate_heroes, ROWS, COLUMNS
 from flask_app import db
-from flask_app.models import Account, Game, Hero
+from flask_app.models import Account, Game, Hero, MoveList, MoveListScratch
 from flask_app.forms import HeroForm
 from flask_login import current_user
 from flask_socketio import SocketIO, join_room, leave_room, close_room, emit, send
 from random import choices
+import datetime
 import time
 from uuid import uuid4
 
@@ -41,7 +42,7 @@ def hero_select():
 
 
 
-socketio = SocketIO()
+socketio = SocketIO(engineio_logger=True, logger=True, ping_timeout=5, async_mode='gevent')
 
 # List of active games to join
 rooms = {}
@@ -143,6 +144,7 @@ def new_connection():
 
     # Gets the room and player where the client is at from the session
     room = rooms.get(session['room'])
+    print('\n\n%s\n' % (current_user.username))
     player = room.getByName(current_user.username)
 
     # Does nothing if the player has not already been added to the room
@@ -301,6 +303,7 @@ def game_move(data):
         emit('message', "That move is not valid", namespace='/room', room=request.sid)
         return False
 
+
     # Depending on the move, change position
     move_player(data, room, current_position)
 
@@ -313,6 +316,12 @@ def game_move(data):
 
     send("User " + room.player_turn + " moved from tile x:" + str(current_position[0]+1) + ' y:' + str(current_position[1]+1) +
          " to x:" + str(position_new[0]+1) + " y:" + str(position_new[1]+1) + ".", namespace='/room', room=room)
+    
+    # Log move in move history
+    new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=room.player_turn, action=data)
+    
+    db.session.add(new_move)
+    db.session.commit()
 
     # Change the turn of the player
     if room.player_turn == room.player1:
@@ -458,6 +467,8 @@ def game_attack():
         room.player_turn = room.player1
     send("Turn of player " + room.player_turn + " now", namespace='/room', room=room)
 
+
+
     return
 
 
@@ -498,6 +509,10 @@ def attack_player(room, player, enemy):
 
     if damage[0] == 0:
         send("User " + player.name + " failed the attack.", namespace='/room', room=room)
+        attack_string = "%s missed attacking %s" % (player.name, enemy.name)
+        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player, action=attack_string)
+        db.session.add(new_move)
+        db.session.commit()
     else:
         remaining_health = enemy.health - damage[0]
         if remaining_health < 0:
@@ -505,8 +520,39 @@ def attack_player(room, player, enemy):
         enemy.health = remaining_health
         send("User " + player.name + " attacked " + enemy.name + " and did " + str(damage[0]) + " damage!",
              namespace='/room', room=room)
+        attack_string = "%s attacked %s" % (player.name, enemy.name)
+        new_move = MoveListScratch(timestamp=float(time.time()), game_id=room.getRoomId(), username_p1=room.player1, username_p2=room.player2, player_acting=player, action=attack_string)
+        
+        db.session.add(new_move)
+        db.session.commit()
     return
 
+@bp.route('/past_games', methods=['GET'])
+def display_games():
+    games = []
+    if not current_user.is_authenticated:
+        print("user not authenticated, please login")
+        return redirect(url_for('auth.login'))
+    
+    queried_games = Game.query.filter_by(status=1).order_by(Game.room_id)
+
+    games = [[game.room_id, game.att_name, game.def_name, game.winner, game.loser] for game in queried_games]
+
+    return render_template('past_games.html', games=games)
+
+@bp.route('/moves')
+def display_moves():
+    moves = []
+
+    if not current_user.is_authenticated:
+        print("user not authenticated, please login")
+        return redirect(url_for('auth.login'))
+    
+    queried_moves = MoveListScratch.query.order_by(MoveListScratch.timestamp)
+
+    moves = [[move.timestamp, move.game_id, move.username_p1, move.username_p2, move.player_acting, move.action] for move in queried_moves]
+
+    return render_template('moves.html', moves=moves)
 
 def game_db(room):
     room_id = room.id
